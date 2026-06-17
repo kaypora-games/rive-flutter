@@ -99,7 +99,7 @@ extension ArtboardRuntimeExtensions on Artboard {
 /// This artboard type is purely for use by the runtime system and should not be
 /// directly referenced. Use the Artboard type for any direct interactions with
 /// an artboard, and use extension methods to add functionality to Artboard.
-final class RuntimeArtboard extends Artboard with Printable implements CoreContext {
+final class RuntimeArtboard extends Artboard implements CoreContext {
   @nonVirtual
   final redraw = Notifier();
 

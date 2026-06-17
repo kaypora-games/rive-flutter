@@ -10,7 +10,7 @@ import 'state_machine_controller.dart';
 
 const _logr = Logr.always(prefix: 'stats');
 
-class _AdvanceStats with Printable {
+class _AdvanceStats {
 
   _AdvanceStats._();
   static final _singleton = _AdvanceStats._();
@@ -64,7 +64,7 @@ abstract class _FrequencyPrinter {
   }
 }
 
-class _StateStats with Printable {
+class _StateStats {
 
   _StateStats._(this.name);
   static _StateStats? _singleton;
