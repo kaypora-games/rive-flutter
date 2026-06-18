@@ -1,5 +1,6 @@
 // ignore_for_file: unused_import, lines_longer_than_80_chars
 
+import 'package:plato/plato.dart';
 import 'package:rive/src/core/core.dart';
 import 'package:rive/src/rive_core/animation/keyed_object.dart';
 import 'package:rive/src/rive_core/animation/linear_animation.dart';
@@ -7,6 +8,9 @@ import 'package:rive/src/rive_core/animation/loop.dart';
 import 'package:rive/src/rive_core/event.dart';
 
 import '../stats.dart';
+
+// ignore: unused_element
+const _logr = Logr(true, prefix: 'linear-animation-instance');
 
 class LinearAnimationInstance {
   final LinearAnimation animation;
@@ -49,7 +53,11 @@ class LinearAnimationInstance {
   double get time => _time;
 
   /// Direction should only be +1 or -1
-  set direction(int value) => _direction = value == -1 ? -1 : 1;
+  set direction(int value) => _direction = switch (value) {
+    -1 => -1,
+    1 => 1,
+    _ => throw UnimplementedError('review value=$value'),
+  };
 
   /// Returns the animation's play direction: 1 for forwards, -1 for backwards
   int get direction => _direction;
@@ -93,45 +101,52 @@ class LinearAnimationInstance {
       {KeyedCallbackReporter? callbackReporter}) {
     _spilledTime = 0;
 
-    // assert (0 == 1, 'debug');
-
     var loop = animation.loop;
+
+    var positive = elapsedSeconds >= 0;
+    direction = positive ? 1 : -1; // TODO added recently to allow negative speed oneShot animations
 
     // NOTE:
     // do not track spilled time, if our one shot loop is already completed.
     // stop gap before we move spilled tracking into state machine logic.
     var dontKeepGoing = !keepGoing;
 
+    // var negative = elapsedSeconds < 0 && Randoms().hit(0.01);
+    // if (negative) _logr.chain('ADVANCE 0 >', animation.name, elapsedSeconds, loop, dontKeepGoing,
+    //     '>>', animation.speed, _direction, directedSpeed, _time, animation.startSeconds, animation.endSeconds);
+
     if (loop == Loop.oneShot) {
       if (dontKeepGoing) {
         _didLoop = true;
         return false;
-      // } else {
-      //   // TODO review animation speed and direction for oneShot
-      //   FrequencyPrinter.print(frequency: 500, () => 'oneShot > ${animation.name} '
-      //       '${animation.speed} $_direction > ${animation.duration}');
       }
     }
 
-    final absSeconds = elapsedSeconds * animation.speed_;
-    if (absSeconds == 0) {
+    final signedSeconds = elapsedSeconds * animation.speed_;
+    if (signedSeconds == 0) {
       _didLoop = false;
       return !dontKeepGoing;
     }
 
-    int direction = _direction;
-    final double deltaSeconds;
-    if (_direction == 1) {
-      deltaSeconds = absSeconds;
-    } else {
-      deltaSeconds = absSeconds * direction;
-    }
+    final absSeconds = positive ? signedSeconds : -signedSeconds;
+    // if (negative) _logr.chain('ADVANCE 1 >', absSeconds);
+
+    // expect a positive value always
+    assert (absSeconds >= 0, 'absSeconds=$absSeconds');
+
+    // int direction = _direction;
+    // final double signedSeconds;
+    // if (_direction == 1) {
+    //   signedSeconds = absSeconds;
+    // } else {
+    //   signedSeconds = absSeconds * direction;
+    // }
 
     _lastTotalTime = _totalTime;
     _totalTime += absSeconds;
 
     var lastTime = _time;
-    _time += deltaSeconds;
+    _time += signedSeconds;
 
     final _ReportKeyedCallbacksInvocation? callbacksInvocation =
       callbackReporter == null ? null :
@@ -153,6 +168,8 @@ class LinearAnimationInstance {
       range = end;
     }
 
+    // if (negative) _logr.chain('ADVANCE 2 >', direction);
+
     // var didLoop = false;
 
     // var direction = deltaSeconds < 0 ? -1 : 1;
@@ -168,7 +185,7 @@ class LinearAnimationInstance {
           // by it.
 
           if (!dontKeepGoing) {
-            final deltaFrames = deltaSeconds * fps;
+            final deltaFrames = signedSeconds * fps;
             final spilledFramesRatio = (frames - end) / deltaFrames;
             _spilledTime = spilledFramesRatio * elapsedSeconds;
           }
@@ -179,7 +196,7 @@ class LinearAnimationInstance {
         } else if (direction == -1 && frames < start) {
 
           if (!dontKeepGoing) {
-            final deltaFrames = (deltaSeconds * fps).abs();
+            final deltaFrames = (signedSeconds * fps).abs();
             final spilledFramesRatio = (start - frames) / deltaFrames;
             _spilledTime = spilledFramesRatio * elapsedSeconds;
           }
@@ -203,7 +220,7 @@ class LinearAnimationInstance {
           final remainder = (frames - start) % range;
 
           if (!dontKeepGoing) {
-            final deltaFrames = deltaSeconds * fps;
+            final deltaFrames = signedSeconds * fps;
             final spilledFramesRatio = remainder / deltaFrames;
             _spilledTime = spilledFramesRatio * elapsedSeconds;
           }
@@ -224,7 +241,7 @@ class LinearAnimationInstance {
           final remainder = (start - frames) % range;
 
           if (!dontKeepGoing) {
-            final deltaFrames = deltaSeconds * fps;
+            final deltaFrames = signedSeconds * fps;
             final spilledFramesRatio = (remainder / deltaFrames).abs();
             _spilledTime = spilledFramesRatio * elapsedSeconds;
           }
@@ -293,6 +310,8 @@ class LinearAnimationInstance {
     // if (dontKeepGoing) {
     //   _spilledTime = 0;
     // }
+
+    // if (negative) _logr.chain('ADVANCE 3 >', keepGoing);
 
     // _didLoop = didLoop;
     return keepGoing;
