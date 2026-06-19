@@ -1,9 +1,13 @@
+import 'package:plato/plato.dart';
 import 'package:rive/src/core/core.dart';
 import 'package:rive/src/rive_core/animation/blend_animation.dart';
 import 'package:rive/src/rive_core/animation/blend_state.dart';
 import 'package:rive/src/rive_core/animation/linear_animation_instance.dart';
 import 'package:rive/src/rive_core/animation/state_instance.dart';
 import 'package:rive/src/rive_core/state_machine_controller.dart';
+
+// ignore: unused_element
+const _logr = Logr.always(prefix: 'blend-state-instance');
 
 /// Individual animation in a blend state instance.
 class BlendStateAnimationInstance<T extends BlendAnimation> {
@@ -30,6 +34,8 @@ abstract class BlendStateInstance<T extends BlendState<K>,
   @override
   bool get keepGoing => true;
 
+  static bool selected = false;
+
   @mustCallSuper
   @override
   bool advance(double seconds, StateMachineController controller) {
@@ -38,7 +44,7 @@ abstract class BlendStateInstance<T extends BlendState<K>,
     // return value.
     // Blend states need to keep blending forever, as even if the animation
     // does not change the mix values may
-    var result = false;
+    // var result = false;
     var t = animationInstances.length;
     LinearAnimationInstance animationInstance;
     // for (final animation in animationInstances) {
@@ -48,26 +54,45 @@ abstract class BlendStateInstance<T extends BlendState<K>,
         // Should animations with m_Mix == 0.0 advance? They will trigger events
         // and the event properties (if any) will not be updated by
         // animationInstance.apply.
-        if (animationInstance.advance(
+        animationInstance.advance(
           seconds,
           callbackReporter: controller,
-        )) {
-          result = true;
-        }
+        );
+
+        // if (animationInstance.advance(
+        //   seconds,
+        //   callbackReporter: controller,
+        // )) {
+        //   result = true;
+        // }
       }
     }
-    return result;
+    return true;
+    // return result;
   }
 
   @override
   void apply(CoreContext core, double mix) {
+
+    // if (selected) _logr.chain('BLEND APPLY > ', this, mix);
+
     for (final animation in animationInstances) {
-      double m = mix * animation.mix;
-      if (m == 0) {
+      var m = mix * animation.mix;
+      var stop = m == 0;
+      // if (selected) _logr.chain('BLEND APPLY > ', animation.animationInstance.animation.name, animation.animationInstance.time,
+      //   animation.mix, m,
+      //   stop ? null : 'CONTINUE-MIX',
+      // );
+      if (stop) {
         continue;
       }
+
+      // KeyedObject.selected = true;
+
       animation.animationInstance.animation
           .apply(animation.animationInstance.time, coreContext: core, mix: m);
+
+      // KeyedObject.selected = false;
     }
   }
 }

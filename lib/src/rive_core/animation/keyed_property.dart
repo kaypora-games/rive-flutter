@@ -1,3 +1,4 @@
+import 'package:plato/plato.dart';
 import 'package:rive/src/core/core.dart';
 import 'package:rive/src/generated/animation/keyed_property_base.dart';
 import 'package:rive/src/rive_core/animation/interpolating_keyframe.dart';
@@ -9,6 +10,9 @@ import '../../../rive.dart';
 import '../../generated/animation/nested_trigger_base.dart';
 
 export 'package:rive/src/generated/animation/keyed_property_base.dart';
+
+// ignore: unused_element
+const _logr = Logr.always(prefix: 'keyed-property');
 
 abstract class KeyFrameInterface {
   int get frame;
@@ -254,6 +258,8 @@ class KeyedProperty extends KeyedPropertyBase<RuntimeArtboard>
       propertyKey == NestedTriggerBase.firePropertyKey;
       // RiveCoreContext.isCallback(propertyKey_);
 
+  // static bool selected = false;
+
   /// Report any keyframes that occured between secondsFrom and secondsTo.
   void reportKeyedCallbacks(
     int objectId,
@@ -262,9 +268,6 @@ class KeyedProperty extends KeyedPropertyBase<RuntimeArtboard>
     required KeyedCallbackReporter reporter,
     bool isAtStartFrame = false,
   }) {
-    // if (secondsFrom == secondsTo) {
-    //   return;
-    // }
     bool isForward = secondsFrom <= secondsTo;
     int fromExactOffset = 0;
     int toExactOffset = isForward ? 1 : 0;
@@ -277,21 +280,23 @@ class KeyedProperty extends KeyedPropertyBase<RuntimeArtboard>
         fromExactOffset = 1;
       }
     }
-    int idx = _closestFrameIndex(secondsFrom, exactOffset: fromExactOffset);
+    int idxFrom = _closestFrameIndex(secondsFrom, exactOffset: fromExactOffset);
     int idxTo = _closestFrameIndex(secondsTo, exactOffset: toExactOffset);
 
+    // if (selected) _logr.chain('REPORT-KEYED-CALLBACKS > idxFrom=$idxFrom idxTo=$idxTo');
+
     // going backwards?
-    if (idxTo < idx) {
-      var swap = idx;
-      idx = idxTo;
+    if (idxTo < idxFrom) {
+      var swap = idxFrom;
+      idxFrom = idxTo;
       idxTo = swap;
     }
 
-    while (idxTo > idx) {
-      var frame = keyframes[idx];
+    while (idxTo > idxFrom) {
+      var frame = keyframes[idxFrom];
       reporter.reportKeyedCallback(
           objectId, propertyKey, secondsTo - frame.seconds);
-      idx++;
+      idxFrom++;
     }
   }
 
@@ -323,6 +328,8 @@ class KeyedProperty extends KeyedPropertyBase<RuntimeArtboard>
     }
 
     var fromFrame = pair!.fromFrame;
+
+    // if (selected) _logr.chain('KEYED-PROPERTY APPLY > ', seconds, mix, pair, fromFrame?.interpolationType);
 
     if (fromFrame != null) { // interpolation
       if (fromFrame.interpolationType == 0) {
@@ -365,6 +372,14 @@ class _ClosestFrame {
   final double secondsMin;
   final double secondsMax;
   const _ClosestFrame(this.fromFrame, this.toFrame, this.secondsMin, this.secondsMax);
+
+  @override
+  String toString() => printr(
+    'fromFrame=', fromFrame,
+    'toFrame=', toFrame,
+    secondsMin,
+    secondsMax
+  );
 }
 
 // class _SkipInterpolation extends _ClosestFrame {

@@ -1,6 +1,7 @@
 import 'dart:collection';
 
 import 'package:collection/collection.dart';
+import 'package:plato/plato.dart';
 import 'package:rive/src/core/core.dart';
 import 'package:rive/src/generated/animation/keyed_object_base.dart';
 import 'package:rive/src/rive_core/animation/keyed_property.dart';
@@ -8,6 +9,9 @@ import 'package:rive/src/rive_core/animation/keyed_property.dart';
 import 'linear_animation.dart';
 
 export 'package:rive/src/generated/animation/keyed_object_base.dart';
+
+// ignore: unused_element
+const _logr = Logr.always(prefix: 'keyed-object');
 
 // ignore: one_member_abstracts
 mixin KeyedCallbackReporter {
@@ -89,22 +93,20 @@ class KeyedObject extends KeyedObjectBase<RuntimeArtboard> {
     return removed != null;
   }
 
+  // static bool selected = false;
+
   void reportKeyedCallbacks(
     double secondsFrom,
     double secondsTo, {
     required KeyedCallbackReporter reporter,
     bool isAtStartFrame = false,
   }) {
-    var ps = keyedPropertiesCallback; //keyedProperties;
+    var ps = keyedPropertiesCallback;
     var t = ps.length;
-    // KeyedProperty keyedProperty;
+
+    // if (selected) _logr.chain('REPORT-KEYED-CALLBACKS > #${keyedProperties.length} ps=${ps.join(',')}');
+
     for (var i = 0; i < t; i++) {
-      // keyedProperty = ps[i];
-
-      // if (!keyedProperty.isCallback) {
-      //   continue;
-      // }
-
       ps[i].reportKeyedCallbacks(
         objectId,
         secondsFrom,
@@ -128,6 +130,9 @@ class KeyedObject extends KeyedObjectBase<RuntimeArtboard> {
     var ps = keyedPropertiesNonCallback;
     var t = ps.length;
     KeyedProperty p;
+
+    // if (selected) _logr.chain('KEYED-OBJECT APPLY > #${keyedProperties.length} ps=${ps.join(',')}');
+
     for (var i = 0; i < t; i++) { // for indexed has the best performance in Dart
       p = ps[i];
       if (p.keyframes.isEmpty) continue;

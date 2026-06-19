@@ -10,7 +10,7 @@ import 'package:rive/src/rive_core/event.dart';
 import '../stats.dart';
 
 // ignore: unused_element
-const _logr = Logr(true, prefix: 'linear-animation-instance');
+const _logr = Logr.always(prefix: 'linear-animation-instance');
 
 class LinearAnimationInstance {
   final LinearAnimation animation;
@@ -62,7 +62,7 @@ class LinearAnimationInstance {
   /// Returns the animation's play direction: 1 for forwards, -1 for backwards
   int get direction => _direction;
 
-  double get directedSpeed => animation.speed * _direction;
+  double get directedSpeed => animation.speed_ * _direction;
 
   double get progress =>
       (_time - animation.startTime).abs() /
@@ -111,9 +111,12 @@ class LinearAnimationInstance {
     // stop gap before we move spilled tracking into state machine logic.
     var dontKeepGoing = !keepGoing;
 
-    // var negative = elapsedSeconds < 0 && Randoms().hit(0.01);
-    // if (negative) _logr.chain('ADVANCE 0 >', animation.name, elapsedSeconds, loop, dontKeepGoing,
-    //     '>>', animation.speed, _direction, directedSpeed, _time, animation.startSeconds, animation.endSeconds);
+    // var selected = elapsedSeconds < 0 && Randoms().hit(0.01);
+    // var selected = (animation.name == 'Left-Cam' || animation.name == 'Right-Cam');// && Randoms().hit(0.01);
+    // if (selected) {
+    //   _logr.chain('ADVANCE 0 >', animation.name, elapsedSeconds, loop.name, dontKeepGoing ? 'dont-keep-going' : null,
+    //     '>>', animation.speed_, _direction, directedSpeed, _time, animation.startSeconds, animation.endSeconds);
+    // }
 
     if (loop == Loop.oneShot) {
       if (dontKeepGoing) {
@@ -129,18 +132,10 @@ class LinearAnimationInstance {
     }
 
     final absSeconds = positive ? signedSeconds : -signedSeconds;
-    // if (negative) _logr.chain('ADVANCE 1 >', absSeconds);
+    // if (selected) _logr.chain('ADVANCE 1 >', absSeconds);
 
     // expect a positive value always
     assert (absSeconds >= 0, 'absSeconds=$absSeconds');
-
-    // int direction = _direction;
-    // final double signedSeconds;
-    // if (_direction == 1) {
-    //   signedSeconds = absSeconds;
-    // } else {
-    //   signedSeconds = absSeconds * direction;
-    // }
 
     _lastTotalTime = _totalTime;
     _totalTime += absSeconds;
@@ -168,7 +163,7 @@ class LinearAnimationInstance {
       range = end;
     }
 
-    // if (negative) _logr.chain('ADVANCE 2 >', direction);
+    // if (selected) _logr.chain('ADVANCE 2 >', direction, frames, end);
 
     // var didLoop = false;
 
@@ -311,7 +306,7 @@ class LinearAnimationInstance {
     //   _spilledTime = 0;
     // }
 
-    // if (negative) _logr.chain('ADVANCE 3 >', keepGoing);
+    // if (selected) _logr.chain('ADVANCE 3 >', keepGoing);
 
     // _didLoop = didLoop;
     return keepGoing;
