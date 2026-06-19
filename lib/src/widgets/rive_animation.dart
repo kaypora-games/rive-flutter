@@ -292,6 +292,13 @@ class RiveAnimationState extends State<RiveAnimation> {
       !listEquals(widget.controllers, oldWidget.controllers) ||
       !listEquals(widget.stateMachines, oldWidget.stateMachines);
 
+  String _dump(RiveFile file) => Printr.print(
+    'file=', file,
+    'artboards=', file.artboards.map((a) => a.artboard.name).join(','),
+    'main=', file.mainArtboard.name,
+    'widget=', widget.artboard,
+  );
+
   /// Initializes the artboard, animations, state machines and controllers
   void _init(RiveFile file) {
     _riveFile = file;
@@ -316,14 +323,11 @@ class RiveAnimationState extends State<RiveAnimation> {
             : file.mainArtboard)
         ?.instance();
 
-    // _logr.log(() => 'file=$file artboards=${file.artboards.map((a) => a.artboard.name)} '
-    //     'main=${file.mainArtboard.name} widget=${widget.artboard}');
-
     if (artboard == null) {
-      throw const FormatException('Unable to load artboard');
+      throw FormatException('Unable to load artboard > ${_dump(file)}');
     }
     if (artboard.animations.isEmpty) {
-      throw FormatException('No animations in artboard ${artboard.name}');
+      throw FormatException('No animations in artboard > ${_dump(file)}');
     }
 
     // Create animations. If there are no animations, state machines, or
