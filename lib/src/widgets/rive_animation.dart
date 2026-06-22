@@ -311,7 +311,6 @@ class RiveAnimationState extends State<RiveAnimation> {
     }
 
     // Clear current local controllers.
-    // _controllers.forEach((c) {
     for (final c in _controllers) {
       c.dispose();
     }
@@ -324,7 +323,7 @@ class RiveAnimationState extends State<RiveAnimation> {
         ?.instance();
 
     if (artboard == null) {
-      throw FormatException('Unable to load artboard > ${_dump(file)}');
+      throw StateError('Cannot load the requested artboard > artboard=${widget.artboard} main=${file.mainArtboard} >> ${_dump(file)}');
     }
     if (artboard.animations.isEmpty) {
       throw FormatException('No animations in artboard > ${_dump(file)}');
