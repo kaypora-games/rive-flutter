@@ -219,8 +219,8 @@ class RiveAnimation extends StatefulWidget {
 /// This is to avoid unnecessary duplicate RiveAnimationState._init and RiveAnimation.onInit calls
 class _RiveAnimationPayload {
 
-  /// Future waiting for the rive file to load
-  Future<RiveFile>? riveFileLoader;
+  // /// Future waiting for the rive file to load
+  // Future<RiveFile>? riveFileLoader;
 
   /// Rive controller
   final controllers = <RiveAnimationController>[];
@@ -228,20 +228,11 @@ class _RiveAnimationPayload {
   /// Active artboard
   Artboard? artboard;
 
-  /// Active Rive file loaded in memory.
-  RiveFile? riveFile;
+  // /// Active Rive file loaded in memory.
+  // RiveFile? riveFile;
 
-  _RiveAnimationPayload(Widget widget) {
-    _ShortLivedPayloadCache().push(widget, this);
-  }
-
-  void clear() {
-    // Clear current local controllers.
-    for (final c in controllers) {
-      c.dispose();
-    }
-    controllers.clear();
-  }
+  /// Load and init future
+  Future<void>? loadAndInit;
 
   var _disposed = false;
 
@@ -254,12 +245,7 @@ class _RiveAnimationPayload {
       _ShortLivedPayloadCache().dispose(widget); // remove and dispose associated payload
     } else {
       _ShortLivedPayloadCache().removeLoose();
-      _logr.log(() => '${_ShortLivedPayloadCache()}');
-      if (_ShortLivedPayloadCache().length >= 60) {
-        _logr.telemeter
-          ..log(() => '${_ShortLivedPayloadCache()}')
-          ..dump('Excessive short-lived payloads');
-      }
+      _logr.never.log(() => '${_ShortLivedPayloadCache()}');
     }
   }
 
@@ -269,18 +255,22 @@ class _RiveAnimationPayload {
 
   final _watch = Stopwatches().create();
 
+  bool inited = false;
+
   /// Criteria for a short lived state payload
   /// Short lived payloads are stored to avoid unnecessary duplicate RiveAnimationState._init calls
   bool get shortLived =>
-      _watch.elapsedMilliseconds < 1000;
+      _watch.elapsedMilliseconds < 5000;
 
   bool get loose =>
       _disposed && !shortLived;
 
   @override
-  String toString() => printr(
+  String toString() => Printr.print('Payload',
     hashCode,
     shortLived ? 'short-lived' : null,
+    artboard == null ? 'no-artboard' : null,
+    inited ? null : 'not-inited',
   );
 }
 
@@ -315,14 +305,28 @@ class _ShortLivedPayloadCache {
       }
       return false;
     });
+
+    if (length >= 100 && !_excessiveDumped) {
+      _excessiveDumped = true;
+      _logr.telemeter
+        ..log(() => '$this')
+        ..dump('Excessive short-lived payloads');
+    }
   }
+
+  var _excessiveDumped = false;
 
   @override
   String toString() => printr(
     'payloads=', cache.length,
     'short-lived=', cache.values.where((p) => p.shortLived).length,
-    'loose-candidates=', cache.values.where((p) => p.loose).length,
+    'loose=', cache.values.where((p) => p.loose).length,
+    'creations=', creations,
+    'reuses=', reuses,
   );
+
+  int creations = 0;
+  int reuses = 0;
 }
 
 @visibleForTesting
@@ -333,56 +337,46 @@ class RiveAnimationState extends State<RiveAnimation> {
 
   String get ticker => '${widget.hashCode}:$hashCode';
 
-  // @override
-  // void initState() {
-  //   super.initState();
-  //   _configure();
-  // }
-
   /// Loads [RiveFile] and calls [_init]
-  Future<bool> _configure({bool forceReload = false, bool forceInit = false}) async {
+  Future<bool> _configure({bool forceReload = false}) async {
 
     assert (mounted, 'expect widget to be mounted at this point');
 
+    final bool reusing;
     var payload = _ShortLivedPayloadCache().consume(widget);
-    if (payload != null) { // hit a short lived payload
-      _logr.log(() => 'SHORT-LIVED RETRIEVE > $ticker $payload');
+    if (payload != null && !forceReload) { // hit a short lived payload
+      reusing = true;
+      _ShortLivedPayloadCache().reuses++;
     } else {
-      payload = _RiveAnimationPayload(widget);
+      reusing = false;
+      _ShortLivedPayloadCache().creations++;
+      payload = _RiveAnimationPayload(); // create a new payload
+      payload.loadAndInit = _loadAndInit(payload); // set load & init future
+      _ShortLivedPayloadCache().push(widget, payload); // add only after setting loadAndInit
     }
+    await payload.loadAndInit!; // wait load and init future
     _payload = payload;
 
-    final bool anotherCallLoading; // true if another call to _configure dispatched the file load
-    final bool thisCallLoading; // true is this call dispatches the file load
-
-    if (payload.riveFile == null || forceReload) { // file not yet loaded or forcing reload
-      thisCallLoading = payload.riveFileLoader == null;
-      anotherCallLoading = payload.riveFileLoader != null;
-      payload.riveFileLoader ??= _loadRiveFile(); // create rive file loader if there's none
-      payload.riveFile = await payload.riveFileLoader; // await on loader
-      payload.riveFileLoader = null; // set loader to null
-    } else {
-      thisCallLoading = false;
-      anotherCallLoading = false;
+    if (!payload.inited) {
+      throw StateError('expect payload to be inited at this point > $payload');
     }
 
-    var init =
-      thisCallLoading || // this call loaded, it must call _init also
-      (!anotherCallLoading && forceInit); // force a new call to _init only if there isn't another call loading
-
-    _logr.never.log(() => 'CONFIGURE > $ticker >'
+    _logr.log(() => 'CONFIGURE > $ticker >'
         '${forceReload?' forceReload':''}'
-        '${forceInit?' forceInit':''}'
-        '${thisCallLoading?' this-call-loading':''}'
-        '${anotherCallLoading?' another-call-loading':''}'
-        '${init?' init':''}'
+        '${reusing?' reusing':''}'
+        ' > $payload'
     );
 
-    if (init) {
-      _init();
-    }
+    return true; // always return true
+  }
 
-    return true;
+
+  Future<void> _loadAndInit(_RiveAnimationPayload payload) async {
+    assert (mounted, 'expect widget to be mounted at this point');
+    // var riveFile = await _loadRiveFile(); // await on loader
+    _init(payload, await _loadRiveFile());
+    _logr.log(() => 'LOAD-&-INIT > $ticker');
+    payload.inited = true;
   }
 
   /// Loads the correct Rive file depending on [widget.src]
@@ -423,7 +417,7 @@ class RiveAnimationState extends State<RiveAnimation> {
         widget.src != oldWidget.src) {
       _configure(forceReload: true); // Rive file has changed
     } else if (_requiresInit(oldWidget)) {
-      _configure(forceInit: true); // Rive file not changed
+      _configure(); // Rive file not changed
     }
   }
 
@@ -443,19 +437,14 @@ class RiveAnimationState extends State<RiveAnimation> {
   );
 
   /// Initializes the artboard, animations, state machines and controllers
-  void _init() {
-    // _riveFile = file;
-    var payload = _payload!;
-    var file = payload.riveFile!;
+  void _init(_RiveAnimationPayload payload, RiveFile file) {
 
-    if (!mounted) {
-      /// _init is usually called asynchronously, so this is a good time to
-      /// check if the widget is still mounted. If it's not we can get out of
-      /// here early.
-      return;
-    }
+    /// _init is usually called asynchronously, so this is a good time to
+    /// check if the widget is still mounted. If it's not we can get out of
+    /// here early.
+    assert (mounted, 'expect widget to be mounted at this point');
 
-    payload.clear();
+    // payload.clear();
 
     final artboard = (widget.artboard != null
             ? file.artboardByName(widget.artboard!)
@@ -516,9 +505,6 @@ class RiveAnimationState extends State<RiveAnimation> {
 
     // Call the onInit callback if provided
     widget.onInit?.call(artboard);
-
-    // _logr.always.dump(() => 'RIVE-ANIMATION ON-INIT');
-    // debugPrintStack();
   }
 
   @override
@@ -554,18 +540,26 @@ class RiveAnimationState extends State<RiveAnimation> {
   Widget build(BuildContext context) => FutureBuilder(
     future: _configure(),
     initialData: false,
-    builder: (context, snapshot) => snapshot.data == true ? Rive(
-      artboard: _payload!.artboard!,
-      fit: widget.fit ?? BoxFit.contain,
-      alignment: widget.alignment ?? Alignment.center,
-      antialiasing: widget.antialiasing,
-      useArtboardSize: widget.useArtboardSize,
-      clipRect: widget.clipRect,
-      enablePointerEvents: _shouldAddHitTesting,
-      behavior: widget.behavior,
-      speedMultiplier: widget.speedMultiplier,
-      isTouchScrollEnabled: widget.isTouchScrollEnabled,
-    )
-        : widget.placeHolder ?? const SizedBox()
+    builder: (context, snapshot) {
+      if (snapshot.data == true) {
+        if (_payload?.artboard == null) {
+          throw StateError('payload artboard is null > $_payload');
+        }
+        return Rive(
+          artboard: _payload!.artboard!,
+          fit: widget.fit ?? BoxFit.contain,
+          alignment: widget.alignment ?? Alignment.center,
+          antialiasing: widget.antialiasing,
+          useArtboardSize: widget.useArtboardSize,
+          clipRect: widget.clipRect,
+          enablePointerEvents: _shouldAddHitTesting,
+          behavior: widget.behavior,
+          speedMultiplier: widget.speedMultiplier,
+          isTouchScrollEnabled: widget.isTouchScrollEnabled,
+        );
+      } else {
+        return widget.placeHolder ?? const SizedBox();
+      }
+    }
   );
 }
