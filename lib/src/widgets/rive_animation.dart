@@ -219,26 +219,20 @@ class RiveAnimation extends StatefulWidget {
 /// This is to avoid unnecessary duplicate RiveAnimationState._init and RiveAnimation.onInit calls
 class _RiveAnimationPayload {
 
-  // /// Future waiting for the rive file to load
-  // Future<RiveFile>? riveFileLoader;
-
   /// Rive controller
   final controllers = <RiveAnimationController>[];
 
   /// Active artboard
   Artboard? artboard;
 
-  // /// Active Rive file loaded in memory.
-  // RiveFile? riveFile;
-
   /// Load and init future
-  Future<void>? loadAndInit;
+  late final Future<void> loadAndInit;
 
-  var _disposed = false;
+  var _onDisposed = false;
 
   void onDispose(Widget widget) {
 
-    _disposed = true;
+    _onDisposed = true;
 
     if (!shortLived) {
       _dispose();
@@ -249,8 +243,12 @@ class _RiveAnimationPayload {
     }
   }
 
+  var _disposed = false;
+
   void _dispose() {
+    _disposed = true;
     controllers.forEach((c) => c.dispose());
+    artboard = null;
   }
 
   final _watch = Stopwatches().create();
@@ -263,14 +261,16 @@ class _RiveAnimationPayload {
       _watch.elapsedMilliseconds < 5000;
 
   bool get loose =>
-      _disposed && !shortLived;
+      _onDisposed && !shortLived;
 
   @override
   String toString() => Printr.print('Payload',
     hashCode,
     shortLived ? 'short-lived' : null,
+    loose ? 'loose' : null,
     artboard == null ? 'no-artboard' : null,
     inited ? null : 'not-inited',
+    _disposed ? 'disposed' : null,
   );
 }
 
@@ -354,7 +354,7 @@ class RiveAnimationState extends State<RiveAnimation> {
       payload.loadAndInit = _loadAndInit(payload); // set load & init future
       _ShortLivedPayloadCache().push(widget, payload); // add only after setting loadAndInit
     }
-    await payload.loadAndInit!; // wait load and init future
+    await payload.loadAndInit; // wait load and init future
     _payload = payload;
 
     if (!payload.inited) {
