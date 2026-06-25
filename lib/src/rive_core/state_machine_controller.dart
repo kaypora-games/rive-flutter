@@ -212,7 +212,17 @@ class LayerController implements Tickerable {
     layerApplySane = true; // set flag to sane
     var i = 0;
     for (; updateState(i != 0); i++) {
-      _apply(core);
+      try {
+        _apply(core);
+      } catch (e, s) {
+        if (layerApplySane) {
+          layerApplySane = false; // flag as not sane only when logging to telemetry
+          var runtime = core is RuntimeArtboard ? core : null;
+          Telemetry()
+            ..log(() => 'FAILED TO APPLY > $i | ${core.runtimeType} ${runtime?.artboard.name}')
+            ..exception(e, s);
+        }
+      }
       if (i == 3) {
         // Escape hatch, let the user know their logic is causing some kind of
         // recursive condition.

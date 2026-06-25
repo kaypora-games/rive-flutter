@@ -123,16 +123,13 @@ class KeyedObject extends KeyedObjectBase<RuntimeArtboard> {
     CoreContext coreContext,
   ) {
     var object = coreContext.resolve(objectId);
-    if (object == null) {
-      return;
-    }
-
-    var ps = keyedPropertiesNonCallback;
-    var t = ps.length;
-    KeyedProperty p;
+    if (object == null) return;
 
     // if (selected) _logr.chain('KEYED-OBJECT APPLY > #${keyedProperties.length} ps=${ps.join(',')}');
 
+    KeyedProperty p;
+    var ps = keyedPropertiesNonCallback;
+    var t = ps.length;
     for (var i = 0; i < t; i++) { // for indexed has the best performance in Dart
       p = ps[i];
       if (p.keyframes.isEmpty) continue;

@@ -258,7 +258,7 @@ class _RiveAnimationPayload {
   /// Criteria for a short lived state payload
   /// Short lived payloads are stored to avoid unnecessary duplicate RiveAnimationState._init calls
   bool get shortLived =>
-      _watch.elapsedMilliseconds < 5000;
+      _watch.elapsedMilliseconds < 2000;
 
   bool get loose =>
       _onDisposed && !shortLived;
