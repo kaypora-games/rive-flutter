@@ -1,4 +1,4 @@
-// ignore_for_file: unused_import
+// ignore_for_file: unused_import, avoid_catches_without_on_clauses
 
 library rive_core;
 
@@ -43,6 +43,8 @@ import 'package:rive_common/math.dart';
 import 'package:stokanal/core.dart' hide Event, Node;
 
 import '../generated/rive_core_beans.dart';
+
+const _logr = Logr.always(prefix: 'state-machine-controller');
 
 /// Callback signature for state machine state changes
 typedef OnStateChange = void Function(
@@ -172,7 +174,20 @@ class LayerController implements Tickerable {
     }
     if (_currentState != null) {
       final _applyMix = interpolator?.transform(_mix) ?? _mix;
-      _currentState!.apply(core, _applyMix);
+
+      try {
+        _currentState!.apply(core, _applyMix);
+      } catch (e, s) {
+        if (layerApplySane) {
+          layerApplySane = false; // flag as not sane only when logging to telemetry
+          var runtime = core is RuntimeArtboard ? core : null;
+          Telemetry()
+            ..log(() => 'FAILED TO APPLY > ${core.runtimeType} ${runtime?.artboard.name}')
+            ..exception(e, s);
+        } else {
+          _logr.warn(() => 'APPLY FAILED > $e');
+        }
+      }
     }
   }
 
@@ -212,17 +227,7 @@ class LayerController implements Tickerable {
     layerApplySane = true; // set flag to sane
     var i = 0;
     for (; updateState(i != 0); i++) {
-      try {
-        _apply(core);
-      } catch (e, s) {
-        if (layerApplySane) {
-          layerApplySane = false; // flag as not sane only when logging to telemetry
-          var runtime = core is RuntimeArtboard ? core : null;
-          Telemetry()
-            ..log(() => 'FAILED TO APPLY > $i | ${core.runtimeType} ${runtime?.artboard.name}')
-            ..exception(e, s);
-        }
-      }
+      _apply(core);
       if (i == 3) {
         // Escape hatch, let the user know their logic is causing some kind of
         // recursive condition.
