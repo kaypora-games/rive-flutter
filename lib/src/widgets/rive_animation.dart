@@ -361,7 +361,7 @@ class RiveAnimationState extends State<RiveAnimation> {
       throw StateError('expect payload to be inited at this point > $payload');
     }
 
-    _logr.log(() => 'CONFIGURE > $ticker >'
+    _logr.never.log(() => 'CONFIGURE > $ticker >'
         '${forceReload?' forceReload':''}'
         '${reusing?' reusing':''}'
         ' > $payload'
@@ -375,7 +375,7 @@ class RiveAnimationState extends State<RiveAnimation> {
     assert (mounted, 'expect widget to be mounted at this point');
     // var riveFile = await _loadRiveFile(); // await on loader
     _init(payload, await _loadRiveFile());
-    _logr.log(() => 'LOAD-&-INIT > $ticker');
+    _logr.never.log(() => 'LOAD-&-INIT > $ticker');
     payload.inited = true;
   }
 
@@ -408,7 +408,7 @@ class RiveAnimationState extends State<RiveAnimation> {
   @override
   void didUpdateWidget(covariant RiveAnimation oldWidget) {
 
-    _logr.log(() => 'DID-UPDATE-WIDGET > ${oldWidget.hashCode} $ticker');
+    _logr.never.log(() => 'DID-UPDATE-WIDGET > ${oldWidget.hashCode} $ticker');
 
     super.didUpdateWidget(oldWidget);
 
