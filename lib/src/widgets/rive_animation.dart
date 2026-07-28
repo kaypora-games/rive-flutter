@@ -6,7 +6,7 @@ import 'package:plato/plato.dart';
 import 'package:rive/rive.dart';
 import 'package:stokanal/core.dart';
 
-const _logr = Logr(true, prefix: 'rive-animation');
+const _logr = Logr(false, prefix: 'rive-animation');
 
 /// Specifies whether a source is from an asset bundle or http
 enum _Source {
