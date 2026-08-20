@@ -12,6 +12,9 @@ import 'keyframe.dart';
 
 export 'package:rive/src/generated/animation/linear_animation_base.dart';
 
+// ignore: unused_element
+const _logr = Logr.always(prefix: 'linear-animation');
+
 class LinearAnimation extends LinearAnimationBase implements Tickerable {
 
   @override
@@ -109,9 +112,15 @@ class LinearAnimation extends LinearAnimationBase implements Tickerable {
     bool fromPong = false,
   }) {
 
-    if (secondsFrom == secondsTo) {
-      return;
-    }
+    var skip = secondsFrom == secondsTo;
+
+    // var selected = name == 'Left-Cam' || name == 'Right-Cam';// && Randoms().hit(0.01);
+    // if (selected) {
+    //   _logr.chain('REPORT-KEYED-CALLBACKS 0 >', name, 'secondsFrom=', secondsFrom, 'secondsTo=', secondsTo, skip ? 'skip' : null,
+    //     speedDirection, fromPong ? 'from-pong' : null);
+    // }
+
+    if (skip) return;
 
     // We have to account for the state machine speed multiplier and the speed
     final double startingTime;
@@ -122,9 +131,21 @@ class LinearAnimation extends LinearAnimationBase implements Tickerable {
     }
     var isAtStartFrame = startingTime == secondsFrom;
 
+    // if (selected) {
+    //   _logr.chain('REPORT-KEYED-CALLBACKS 1 >', name, 'startingTime=', startingTime, isAtStartFrame ? 'frame-start' : null,
+    //       workStart_, workEnd_,
+    //       enableWorkArea_ ? 'enable-work-area' : null, endTime,
+    //       '#${_objects.length}',
+    //   );
+    // }
+
+    // KeyedProperty.selected = selected;
+    // KeyedObject.selected = selected;
+
     // Do not report a callback twice if it comes from the "pong" part of a
     // "ping pong" loop
-     if (!isAtStartFrame || !fromPong) {
+    if (!isAtStartFrame || !fromPong) {
+    // if (!fromPong) {
       var t = _objects.length;
       // for (final keyedObject in _objects) {
       for (var i = 0; i < t; i++) {
@@ -153,9 +174,10 @@ class LinearAnimation extends LinearAnimationBase implements Tickerable {
     //   time = (time * fps).floor() / fps;
     // }
 
-    var t = _objects.length; // for indexed has the best performance in Dart
+    var objects = _objects;
+    var t = objects.length; // for indexed has the best performance in Dart
     for (var i = 0; i < t; i++) {
-      _objects[i].apply(time, mix, coreContext);
+      objects[i].apply(time, mix, coreContext);
     }
   }
 

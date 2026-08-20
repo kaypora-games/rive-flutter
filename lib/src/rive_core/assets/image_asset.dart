@@ -2,10 +2,13 @@ import 'dart:async';
 import 'dart:ui' as ui;
 
 import 'package:flutter/foundation.dart';
+import 'package:plato/plato.dart';
 import 'package:rive/src/generated/assets/image_asset_base.dart';
 import 'package:rive/src/rive_core/shapes/image.dart';
 
 export 'package:rive/src/generated/assets/image_asset_base.dart';
+
+const _logr = Logr.always(prefix: 'image-asset');
 
 class ImageAsset extends ImageAssetBase {
   ui.Image? _image;
@@ -25,7 +28,13 @@ class ImageAsset extends ImageAssetBase {
 
   @override
   Future<void> decode(Uint8List bytes) async {
-    image = await parseBytes(bytes);
+    try {
+      image = await parseBytes(bytes);
+    } catch (e, s) {
+      _logr.telemeter
+        ..log(() => '$runtimeType $format $fileExtension $name $uniqueFilename $cdnBaseUrl $id $width:$height')
+        ..exception(e, s);
+    }
   }
 
   static Future<ui.Image?> parseBytes(Uint8List bytes) async {
