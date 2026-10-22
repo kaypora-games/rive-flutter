@@ -380,12 +380,6 @@ class RiveFile {
     bool loadCdnAssets = true,
     String? path,
   }) {
-    // TODO: in the next major version add an assert here to make this a requirement
-    if (!_initializedText) {
-      /// STOKANAL-FORK-EDIT
-      // debugPrint('''Rive: RiveFile.import called before RiveFile.initialize(). Consider calling `await RiveFile.initialize()` before using `RiveFile.import`''');
-    }
-
     var reader = BinaryReader(bytes);
     return RiveFile._(
       path: path,
