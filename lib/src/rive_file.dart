@@ -185,8 +185,8 @@ class RiveFile {
     final clock = dumpLoadAndInstancePhases.active ? Stopwatches().create() : null;
 
     final skipInterpolation = path != null && RiveSettings().skipInterpolation(path);
-    if (skipInterpolation) {
-      _logr.info('RIVE-FILE >> $path${skipInterpolation ? ' > SKIP_INTERPOLATION' : ''}');
+    if (kDebugMode && skipInterpolation) {
+      // _logr.log(() => 'RIVE-FILE >> $path${skipInterpolation ? ' > SKIP_INTERPOLATION' : ''}');
     }
 
     /// Property fields table of contents
