@@ -182,7 +182,7 @@ class RiveFile {
       String? path,
    }) {
 
-    final clock = dumpLoadAndInstancePhases.active ? Stopwatches().create() : null;
+    final clock = dumpLoadAndInstancePhases.active ? Watch() : null;
 
     final skipInterpolation = path != null && RiveSettings().skipInterpolation(path);
     if (kDebugMode && skipInterpolation) {
@@ -338,7 +338,7 @@ class RiveFile {
       _logr.info('RIVE-FILE >> $path >> artboards=${_artboards.length} objects=$objectsCount keyedProperties=$keyedProperties '
           'latests=${importStack.latests.length} > '
           // '$t2 $t3 >> '
-          '${clock.elapsedMilliseconds}');
+          '${clock.millis}');
       // if (objectsCount > 100000) dump('objects', objects!);
       // if (objectsCount > 100000) dump('imports', imports!);
     }
